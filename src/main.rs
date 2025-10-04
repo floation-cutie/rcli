@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use rcli::{Opts, SubCommand, process_csv};
+use rcli::{Opts, SubCommand, process_csv, process_genpass};
 
 // rcli csv -i input.csv -o output.json --header -d ','
 fn main() -> anyhow::Result<()> {
@@ -16,6 +16,16 @@ fn main() -> anyhow::Result<()> {
                 &PathBuf::from(format!("output.{}", opts.format))
             };
             process_csv(&opts.input, output, opts.format)?
+        }
+        SubCommand::GenPass(opts) => {
+            let password = process_genpass(
+                opts.length,
+                opts.uppercase,
+                opts.lowercase,
+                opts.number,
+                opts.special,
+            )?;
+            println!("Generated password: {}", password);
         }
     }
     // can use cli afterwards
