@@ -4,6 +4,8 @@ use csv::Reader;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, to_string_pretty};
 
+use crate::opts::OutputFormat;
+
 const CSV_CAPACITY: usize = 128;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "PascalCase")]
@@ -18,7 +20,7 @@ struct Player {
     kit: u8,
 }
 
-pub fn process_csv(input: &PathBuf, output: &PathBuf) -> anyhow::Result<()> {
+pub fn process_csv(input: &PathBuf, output: &PathBuf, format: OutputFormat) -> anyhow::Result<()> {
     let mut reader = Reader::from_path(input).expect("Failed to open CSV file");
 
     let mut ret = Vec::with_capacity(CSV_CAPACITY);
@@ -29,8 +31,10 @@ pub fn process_csv(input: &PathBuf, output: &PathBuf) -> anyhow::Result<()> {
         let json_value = headers.iter().zip(record.iter()).collect::<Value>();
         ret.push(json_value);
     }
-
-    let json = to_string_pretty(&ret).expect("Failed to serialize to JSON");
-    std::fs::write(output, json).expect("Failed to write JSON file");
+    let content = match format {
+        OutputFormat::Json => to_string_pretty(&ret)?,
+        OutputFormat::Yaml => serde_yaml::to_string(&ret).expect("Failed to serialize to YAML"),
+    };
+    std::fs::write(output, content).expect("Failed to write output file");
     Ok(())
 }
