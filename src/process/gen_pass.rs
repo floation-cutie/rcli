@@ -1,5 +1,6 @@
 use rand::prelude::*;
 use rand::rng;
+use zxcvbn::zxcvbn;
 
 const UPPER: &str = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 const LOWER: &str = "abcdefghijkmnopqrstuvwxyz";
@@ -47,6 +48,14 @@ pub fn process_genpass(
     }
     password.shuffle(&mut rng);
     let password = String::from_iter(password);
-
+    let estimate = zxcvbn(&password, &[]);
+    if estimate.score().to_string().parse::<u8>().unwrap() < 3 {
+        // Put Info to stderr, not affect the stdout for pipe
+        eprintln!(
+            "Warning: The generated password is weak (score: {}). Consider increasing the length or adding more character types.",
+            estimate.score()
+        );
+    }
+    eprintln!("Password strength: {:?}", estimate.score());
     Ok(password)
 }
