@@ -2,8 +2,8 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use rcli::{
-    Base64SubCommand, Opts, SubCommand, process_csv, process_decode, process_encode,
-    process_genpass,
+    Base64SubCommand, Opts, SubCommand, TextSignFormat, TextSubCommand, process_csv,
+    process_decode, process_encode, process_genpass, process_text_sign,
 };
 
 // rcli csv -i input.csv -o output.json --header -d ','
@@ -28,7 +28,8 @@ fn main() -> anyhow::Result<()> {
                 opts.number,
                 opts.special,
             )?;
-            println!("Generated password: {}", password);
+            // For stdout redirection to file, just print password solely
+            println!("{}", password);
         }
         SubCommand::Base64(subcmd) => match subcmd {
             Base64SubCommand::Encode(opts) => {
@@ -38,6 +39,30 @@ fn main() -> anyhow::Result<()> {
             Base64SubCommand::Decode(opts) => {
                 let decoded = process_decode(&opts.input, opts.format)?;
                 println!("{}", decoded);
+            }
+        },
+        SubCommand::Text(subcmd) => match subcmd {
+            TextSubCommand::Sign(opts) => {
+                match opts.format {
+                    TextSignFormat::Blake3 => {
+                        process_text_sign(&opts.input, opts.key.to_str().unwrap(), opts.format)?
+                    }
+                    TextSignFormat::Ed25519 => {
+                        // Placeholder for Ed25519 signing logic
+                        println!(
+                            "Signing text from {:?} using key {:?} with format {:?}",
+                            opts.input, opts.key, opts.format
+                        );
+                    }
+                }
+            }
+            TextSubCommand::Verify(opts) => {
+                // Placeholder for text verification logic
+                println!(
+                    "Verifying text from {:?} using key {:?} with format {:?} and signature {}
+                ",
+                    opts.input, opts.key, opts.format, opts.sig
+                );
             }
         },
     }

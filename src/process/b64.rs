@@ -1,11 +1,10 @@
-use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
 use base64::engine::general_purpose::*;
 use base64::prelude::*;
 
-use crate::Base64Format;
+use crate::{Base64Format, get_reader};
 
 /// input: filename or '-'(stdin) as a Reader
 pub fn process_encode(input: &Path, format: Base64Format) -> anyhow::Result<String> {
@@ -31,15 +30,6 @@ pub fn process_decode(input: &Path, format: Base64Format) -> anyhow::Result<Stri
     };
     let decoded = String::from_utf8(decoded_bytes)?;
     Ok(decoded)
-}
-
-fn get_reader(input: &Path) -> anyhow::Result<Box<dyn Read>> {
-    let reader: Box<dyn Read> = if input.to_str() == Some("-") {
-        Box::new(std::io::stdin())
-    } else {
-        Box::new(File::open(input)?)
-    };
-    Ok(reader)
 }
 
 #[cfg(test)]
