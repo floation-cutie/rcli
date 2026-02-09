@@ -1,22 +1,9 @@
 use std::fmt::Display;
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
+use clap::Parser;
 
-#[derive(Debug, Parser)]
-#[command(name="rcli", version, about, long_about = None)]
-pub struct Opts {
-    #[command(subcommand)]
-    pub cmd: SubCommand,
-}
-
-#[derive(Debug, Subcommand)]
-pub enum SubCommand {
-    #[command(name = "csv", about = "Show CSV, or convert CSV to other formats")]
-    Csv(CsvOpts),
-    #[command(name = "genpass", about = "Generate a random password")]
-    GenPass(GenPassOpts),
-}
+use super::verify_file_exists;
 
 #[derive(Debug, Clone, Copy)]
 pub enum OutputFormat {
@@ -45,26 +32,6 @@ pub struct CsvOpts {
     pub delimiter: char,
 }
 
-#[derive(Debug, Parser)]
-pub struct GenPassOpts {
-    // 特殊字符 、数字 、大写字母、小写字母
-    #[arg(short, long, default_value_t = 12)]
-    pub length: u8,
-    #[arg(long, default_value_t = true)]
-    pub uppercase: bool,
-    #[arg(long, default_value_t = true)]
-    pub lowercase: bool,
-    #[arg(long, default_value_t = true)]
-    pub number: bool,
-    #[arg(long, default_value_t = false)]
-    pub special: bool,
-}
-
-fn verify_file_exists(file: &str) -> Result<PathBuf, String> {
-    let path = PathBuf::from(file);
-    if path.exists() { Ok(path) } else { Err(format!("File '{}' does not exist", file)) }
-}
-
 fn parse_format(format: &str) -> Result<OutputFormat, String> {
     OutputFormat::try_from(format).map_err(|e| e.to_string())
 }
@@ -78,6 +45,8 @@ impl From<OutputFormat> for &'static str {
     }
 }
 
+// a tryfrom<&str> basically equals to FromStr trait
+// Type Conversion verus String Parsing
 impl TryFrom<&str> for OutputFormat {
     type Error = anyhow::Error;
 

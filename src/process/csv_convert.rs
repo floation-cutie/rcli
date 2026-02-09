@@ -2,9 +2,9 @@ use std::path::PathBuf;
 
 use csv::Reader;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, to_string_pretty};
+use serde_json::Value;
 
-use crate::opts::OutputFormat;
+use crate::cli::OutputFormat;
 
 const CSV_CAPACITY: usize = 128;
 #[derive(Debug, Serialize, Deserialize)]
@@ -32,7 +32,7 @@ pub fn process_csv(input: &PathBuf, output: &PathBuf, format: OutputFormat) -> a
         ret.push(json_value);
     }
     let content = match format {
-        OutputFormat::Json => to_string_pretty(&ret)?,
+        OutputFormat::Json => serde_json::to_string_pretty(&ret)?,
         OutputFormat::Yaml => serde_yaml::to_string(&ret).expect("Failed to serialize to YAML"),
     };
     std::fs::write(output, content).expect("Failed to write output file");
