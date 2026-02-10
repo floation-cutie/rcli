@@ -38,6 +38,15 @@ fn verify_file_exists(filename: &str) -> Result<PathBuf, String> {
     }
 }
 
+fn verify_path(path: &str) -> Result<PathBuf, String> {
+    let p = Path::new(path);
+    if p.exists() && p.is_dir() {
+        Ok(PathBuf::from(path))
+    } else {
+        Err(format!("Path '{}' is not a valid directory", path))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

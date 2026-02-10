@@ -18,7 +18,7 @@ pub fn process_encode(input: &Path, format: Base64Format) -> anyhow::Result<Stri
     Ok(encoded)
 }
 
-pub fn process_decode(input: &Path, format: Base64Format) -> anyhow::Result<String> {
+pub fn process_decode(input: &Path, format: Base64Format) -> anyhow::Result<Vec<u8>> {
     let mut reader = get_reader(input)?;
     let mut data = String::new();
     reader.read_to_string(&mut data)?;
@@ -28,8 +28,7 @@ pub fn process_decode(input: &Path, format: Base64Format) -> anyhow::Result<Stri
         Base64Format::Standard => STANDARD.decode(data)?,
         Base64Format::UrlSafe => URL_SAFE_NO_PAD.decode(data)?,
     };
-    let decoded = String::from_utf8(decoded_bytes)?;
-    Ok(decoded)
+    Ok(decoded_bytes)
 }
 
 #[cfg(test)]
@@ -64,6 +63,7 @@ mod tests {
         encoded_file_std.write_all(encoded_standard.as_bytes()).unwrap();
         let decoded_standard =
             process_decode(encoded_file_std.path(), Base64Format::Standard).unwrap();
+        let decoded_standard = String::from_utf8(decoded_standard).unwrap();
         assert_eq!(decoded_standard, test_str);
 
         // Test UrlSafe format decode
@@ -71,6 +71,7 @@ mod tests {
         encoded_file_url.write_all(encoded_urlsafe.as_bytes()).unwrap();
         let decoded_urlsafe =
             process_decode(encoded_file_url.path(), Base64Format::UrlSafe).unwrap();
+        let decoded_urlsafe = String::from_utf8(decoded_urlsafe).unwrap();
         assert_eq!(decoded_urlsafe, test_str);
 
         // Test round-trip: encode then decode should return original
@@ -78,6 +79,7 @@ mod tests {
         let mut roundtrip_file = NamedTempFile::new().unwrap();
         roundtrip_file.write_all(encoded.as_bytes()).unwrap();
         let decoded = process_decode(roundtrip_file.path(), Base64Format::Standard).unwrap();
+        let decoded = String::from_utf8(decoded).unwrap();
         assert_eq!(decoded, test_str);
     }
 

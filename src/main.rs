@@ -1,10 +1,13 @@
+use std::fs;
 use std::path::PathBuf;
 
 use clap::Parser;
 use rcli::{
     Base64SubCommand, Opts, SubCommand, TextSignFormat, TextSubCommand, process_csv,
-    process_decode, process_encode, process_genpass, process_text_sign,
+    process_decode, process_encode, process_genpass, process_text_generate, process_text_sign,
+    process_text_verify,
 };
+use zxcvbn::zxcvbn;
 
 // rcli csv -i input.csv -o output.json --header -d ','
 fn main() -> anyhow::Result<()> {
@@ -28,6 +31,15 @@ fn main() -> anyhow::Result<()> {
                 opts.number,
                 opts.special,
             )?;
+            let estimate = zxcvbn(&password, &[]);
+            if estimate.score().to_string().parse::<u8>().unwrap() < 3 {
+                // Put Info to stderr, not affect the stdout for pipe
+                eprintln!(
+                    "Warning: The generated password is weak (score: {}). Consider increasing the length or adding more character types.",
+                    estimate.score()
+                );
+            }
+            eprintln!("Password strength: {:?}", estimate.score());
             // For stdout redirection to file, just print password solely
             println!("{}", password);
         }
@@ -37,32 +49,41 @@ fn main() -> anyhow::Result<()> {
                 println!("{}", encoded);
             }
             Base64SubCommand::Decode(opts) => {
-                let decoded = process_decode(&opts.input, opts.format)?;
+                let decoded_bytes = process_decode(&opts.input, opts.format)?;
+                let decoded = String::from_utf8(decoded_bytes)?;
                 println!("{}", decoded);
             }
         },
+        // deal with symmetric and asymmetric text signing and verification
         SubCommand::Text(subcmd) => match subcmd {
             TextSubCommand::Sign(opts) => {
-                match opts.format {
-                    TextSignFormat::Blake3 => {
-                        process_text_sign(&opts.input, opts.key.to_str().unwrap(), opts.format)?
-                    }
-                    TextSignFormat::Ed25519 => {
-                        // Placeholder for Ed25519 signing logic
-                        println!(
-                            "Signing text from {:?} using key {:?} with format {:?}",
-                            opts.input, opts.key, opts.format
-                        );
-                    }
-                }
+                let signed =
+                    process_text_sign(&opts.input, opts.key.to_str().unwrap(), opts.format)?;
+                println!("{}", signed);
             }
             TextSubCommand::Verify(opts) => {
                 // Placeholder for text verification logic
-                println!(
-                    "Verifying text from {:?} using key {:?} with format {:?} and signature {}
-                ",
-                    opts.input, opts.key, opts.format, opts.sig
-                );
+                let verified = process_text_verify(
+                    &opts.input,
+                    opts.key.to_str().unwrap(),
+                    opts.format,
+                    &opts.sig,
+                )?;
+                println!("{}", verified);
+            }
+            TextSubCommand::Generate(opts) => {
+                let keys = process_text_generate(opts.format)?;
+                let output_path = &opts.output;
+                match opts.format {
+                    TextSignFormat::Blake3 => {
+                        let output_path = output_path.join("blake3.txt");
+                        fs::write(output_path, &keys[0])?;
+                    }
+                    TextSignFormat::Ed25519 => {
+                        fs::write(output_path.join("ed25519.sk"), &keys[0])?;
+                        fs::write(output_path.join("ed25519.pk"), &keys[1])?;
+                    }
+                }
             }
         },
     }

@@ -5,7 +5,7 @@ use std::str::FromStr;
 use anyhow::Ok;
 use clap::{Parser, Subcommand};
 
-use super::verify_file_exists;
+use super::{verify_file_exists, verify_path};
 
 #[derive(Debug, Subcommand)]
 pub enum TextSubCommand {
@@ -13,6 +13,8 @@ pub enum TextSubCommand {
     Sign(TextSignOpts),
     #[command(about = "verify signed text data with a public key")]
     Verify(TextVerifyOpts),
+    #[command(about = "Generate a key for text signing")]
+    Generate(TextGenOpts),
 }
 
 #[derive(Debug, Parser)]
@@ -34,13 +36,24 @@ pub struct TextVerifyOpts {
     pub key: PathBuf,
     #[arg(long, default_value = "blake3", value_parser = parse_format)]
     pub format: TextSignFormat,
-    #[arg(short, long)]
+    /// To allow special characters, sig should allow hyphen values
+    #[arg(short, long, allow_hyphen_values = true)]
     pub sig: String,
+}
+
+#[derive(Debug, Parser)]
+pub struct TextGenOpts {
+    #[arg(long, default_value = "blake3", value_parser = parse_format)]
+    pub format: TextSignFormat,
+    #[arg(short, long, value_parser = verify_path)]
+    pub output: PathBuf,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum TextSignFormat {
+    /// Authentication Only (Shared Key)
     Blake3,
+    /// Public Signing (Asymmetric)
     Ed25519,
 }
 
