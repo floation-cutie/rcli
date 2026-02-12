@@ -3,9 +3,9 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use rcli::{
-    Base64SubCommand, Opts, SubCommand, TextSignFormat, TextSubCommand, process_csv,
-    process_decode, process_encode, process_genpass, process_text_generate, process_text_sign,
-    process_text_verify,
+    Base64SubCommand, HttpSubCommand, Opts, SubCommand, TextSignFormat, TextSubCommand,
+    process_csv, process_decode, process_encode, process_genpass, process_text_generate,
+    process_text_sign, process_text_verify,
 };
 use zxcvbn::zxcvbn;
 
@@ -84,6 +84,13 @@ fn main() -> anyhow::Result<()> {
                         fs::write(output_path.join("ed25519.pk"), &keys[1])?;
                     }
                 }
+            }
+        },
+        SubCommand::Http(subcmd) => match subcmd {
+            HttpSubCommand::Serve(opts) => {
+                // Placeholder for HTTP server logic
+                println!("{:?}", opts);
+                println!("Serving directory {:?} on port {}", opts.dir, opts.port);
             }
         },
     }
