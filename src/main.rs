@@ -4,13 +4,15 @@ use std::path::PathBuf;
 use clap::Parser;
 use rcli::{
     Base64SubCommand, HttpSubCommand, Opts, SubCommand, TextSignFormat, TextSubCommand,
-    process_csv, process_decode, process_encode, process_genpass, process_text_generate,
-    process_text_sign, process_text_verify,
+    process_csv, process_decode, process_encode, process_genpass, process_http_serve,
+    process_text_generate, process_text_sign, process_text_verify,
 };
 use zxcvbn::zxcvbn;
 
 // rcli csv -i input.csv -o output.json --header -d ','
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt::init();
     let cli = Opts::parse();
     // pattern matching on the subcommand
     match &cli.cmd {
@@ -86,11 +88,10 @@ fn main() -> anyhow::Result<()> {
                 }
             }
         },
+        // static http file server
         SubCommand::Http(subcmd) => match subcmd {
             HttpSubCommand::Serve(opts) => {
-                // Placeholder for HTTP server logic
-                println!("{:?}", opts);
-                println!("Serving directory {:?} on port {}", opts.dir, opts.port);
+                process_http_serve(&opts.dir, opts.port).await?;
             }
         },
     }
