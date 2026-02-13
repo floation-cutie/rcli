@@ -4,12 +4,14 @@ use std::str::FromStr;
 
 use anyhow::Ok;
 use clap::{Parser, Subcommand};
+use enum_dispatch::enum_dispatch;
 use tokio::fs;
 
 use super::{verify_file_exists, verify_path};
 use crate::CmdExecutor;
 
 #[derive(Debug, Subcommand)]
+#[enum_dispatch(CmdExecutor)]
 pub enum TextSubCommand {
     #[command(about = "Sign text data with a private/shared key")]
     Sign(TextSignOpts),
@@ -20,16 +22,6 @@ pub enum TextSubCommand {
 }
 
 // deal with symmetric and asymmetric text signing and verification
-impl CmdExecutor for TextSubCommand {
-    async fn execute(self) -> anyhow::Result<()> {
-        match self {
-            TextSubCommand::Sign(opts) => opts.execute().await,
-            TextSubCommand::Verify(opts) => opts.execute().await,
-            TextSubCommand::Generate(opts) => opts.execute().await,
-        }
-    }
-}
-
 impl CmdExecutor for TextSignOpts {
     async fn execute(self) -> anyhow::Result<()> {
         let sig = crate::process_text_sign(&self.input, self.key.to_str().unwrap(), self.format)?;
