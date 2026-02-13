@@ -8,6 +8,7 @@ use axum::Router;
 use axum::extract::{Path as AxumPath, State};
 use axum::http::StatusCode;
 use axum::routing::get;
+use tower_http::services::ServeDir;
 use tracing::{info, warn};
 
 #[derive(Clone, Debug)]
@@ -23,9 +24,18 @@ impl Display for HttpServeState {
 
 pub async fn process_http_serve(path: &PathBuf, port: u16) -> Result<()> {
     let state = HttpServeState { dir: path.clone() };
+    let dir_service = ServeDir::new(path)
+        .append_index_html_on_directories(true)
+        .precompressed_gzip()
+        .precompressed_br()
+        .precompressed_deflate()
+        .precompressed_zstd();
+    // route_service is used to serve files from the specified directory
+    // nest_service is used to mount the subrouter serving service
     let router = Router::new()
         .route("/", get(root_handler))
         .route("/{*path}", get(file_handler))
+        .nest_service("/tower", dir_service)
         .with_state(Arc::new(state));
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("Serving files from '{:?}' on {}", path, addr);
@@ -118,5 +128,18 @@ fn format_directory_entry(entry: &tokio::fs::DirEntry, entry_path: &Path) -> Str
         format!("{}/\n", entry.file_name().to_string_lossy())
     } else {
         String::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[tokio::test]
+    async fn test_file_handler() {
+        let state = HttpServeState { dir: PathBuf::from("src/process") };
+        let (status, body) =
+            file_handler(State(Arc::new(state)), AxumPath("http_serve.rs".to_string())).await;
+        assert_eq!(status, StatusCode::OK);
+        assert!(body.contains("use anyhow::Result;"));
     }
 }

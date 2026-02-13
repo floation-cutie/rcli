@@ -1,3 +1,8 @@
 ### Test index page
 
 GET http://localhost:8080/src
+
+### Test file serving with tower_http
+
+GET http://localhost:8080/tower/fixtures/ed25519.sk
+Range: bytes=0-15
