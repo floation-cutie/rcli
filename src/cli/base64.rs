@@ -6,6 +6,7 @@ use anyhow::Ok;
 use clap::{Parser, Subcommand};
 
 use super::verify_file_exists;
+use crate::CmdExecutor;
 
 #[derive(Debug, Subcommand)]
 pub enum Base64SubCommand {
@@ -13,6 +14,32 @@ pub enum Base64SubCommand {
     Encode(Base64EncodeOpts),
     #[command(name = "decode", about = "Base64 Decode")]
     Decode(Base64DecodeOpts),
+}
+
+impl CmdExecutor for Base64SubCommand {
+    async fn execute(self) -> anyhow::Result<()> {
+        match self {
+            Base64SubCommand::Encode(opts) => opts.execute().await,
+            Base64SubCommand::Decode(opts) => opts.execute().await,
+        }
+    }
+}
+
+impl CmdExecutor for Base64EncodeOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let encoded = crate::process_encode(&self.input, self.format)?;
+        println!("{}", encoded);
+        Ok(())
+    }
+}
+
+impl CmdExecutor for Base64DecodeOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let decoded_bytes = crate::process_decode(&self.input, self.format)?;
+        let decoded = String::from_utf8(decoded_bytes)?;
+        println!("{}", decoded);
+        Ok(())
+    }
 }
 
 #[derive(Debug, Parser)]

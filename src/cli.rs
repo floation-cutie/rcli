@@ -12,6 +12,8 @@ pub use genpass::GenPassOpts;
 pub use http::HttpSubCommand;
 pub use text::{TextSignFormat, TextSubCommand};
 
+use crate::CmdExecutor;
+
 #[derive(Debug, Parser)]
 #[command(name="rcli", version, about, long_about = None)]
 pub struct Opts {
@@ -25,12 +27,33 @@ pub enum SubCommand {
     Csv(CsvOpts),
     #[command(name = "genpass", about = "Generate a random password")]
     GenPass(GenPassOpts),
-    #[command(subcommand)]
+    #[command(subcommand, about = "Base64 encode/decode")]
     Base64(Base64SubCommand),
-    #[command(subcommand)]
+    #[command(subcommand, about = "Text signing/verification")]
     Text(TextSubCommand),
-    #[command(subcommand)]
+    #[command(subcommand, about = "HTTP server for file serving and directory listing")]
     Http(HttpSubCommand),
+}
+
+impl CmdExecutor for SubCommand {
+    async fn execute(self) -> anyhow::Result<()> {
+        match self {
+            SubCommand::Csv(opts) => opts.execute().await,
+            SubCommand::GenPass(opts) => opts.execute().await,
+            SubCommand::Base64(subcmd) => match subcmd {
+                Base64SubCommand::Encode(opts) => opts.execute().await,
+                Base64SubCommand::Decode(opts) => opts.execute().await,
+            },
+            SubCommand::Text(subcmd) => match subcmd {
+                TextSubCommand::Sign(opts) => opts.execute().await,
+                TextSubCommand::Verify(opts) => opts.execute().await,
+                TextSubCommand::Generate(opts) => opts.execute().await,
+            },
+            SubCommand::Http(subcmd) => match subcmd {
+                HttpSubCommand::Serve(opts) => opts.execute().await,
+            },
+        }
+    }
 }
 
 fn verify_file_exists(filename: &str) -> Result<PathBuf, String> {

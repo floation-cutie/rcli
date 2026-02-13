@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 use super::verify_file_exists;
+use crate::CmdExecutor;
 
 #[derive(Debug, Clone, Copy)]
 pub enum OutputFormat {
@@ -30,6 +31,17 @@ pub struct CsvOpts {
     pub header: bool,
     #[arg(short, long, help = "Delimiter character", default_value_t = ',')]
     pub delimiter: char,
+}
+
+impl CmdExecutor for CsvOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let output = if let Some(output) = self.output {
+            output
+        } else {
+            PathBuf::from(format!("output.{}", self.format))
+        };
+        crate::process_csv(&self.input, &output, self.format)
+    }
 }
 
 fn parse_format(format: &str) -> Result<OutputFormat, String> {

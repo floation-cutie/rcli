@@ -4,8 +4,10 @@ use std::str::FromStr;
 
 use anyhow::Ok;
 use clap::{Parser, Subcommand};
+use tokio::fs;
 
 use super::{verify_file_exists, verify_path};
+use crate::CmdExecutor;
 
 #[derive(Debug, Subcommand)]
 pub enum TextSubCommand {
@@ -15,6 +17,56 @@ pub enum TextSubCommand {
     Verify(TextVerifyOpts),
     #[command(about = "Generate a key for text signing")]
     Generate(TextGenOpts),
+}
+
+// deal with symmetric and asymmetric text signing and verification
+impl CmdExecutor for TextSubCommand {
+    async fn execute(self) -> anyhow::Result<()> {
+        match self {
+            TextSubCommand::Sign(opts) => opts.execute().await,
+            TextSubCommand::Verify(opts) => opts.execute().await,
+            TextSubCommand::Generate(opts) => opts.execute().await,
+        }
+    }
+}
+
+impl CmdExecutor for TextSignOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let sig = crate::process_text_sign(&self.input, self.key.to_str().unwrap(), self.format)?;
+        println!("{}", sig);
+        Ok(())
+    }
+}
+
+impl CmdExecutor for TextVerifyOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let verified = crate::process_text_verify(
+            &self.input,
+            self.key.to_str().unwrap(),
+            self.format,
+            &self.sig,
+        )?;
+        println!("{}", verified);
+        Ok(())
+    }
+}
+
+impl CmdExecutor for TextGenOpts {
+    async fn execute(self) -> anyhow::Result<()> {
+        let keys = crate::process_text_generate(self.format)?;
+        let output_path = &self.output;
+        match self.format {
+            TextSignFormat::Blake3 => {
+                let output_path = output_path.join("blake3.txt");
+                fs::write(output_path, &keys[0]).await?;
+            }
+            TextSignFormat::Ed25519 => {
+                fs::write(output_path.join("ed25519.sk"), &keys[0]).await?;
+                fs::write(output_path.join("ed25519.pk"), &keys[1]).await?;
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Parser)]
