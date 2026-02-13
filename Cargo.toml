@@ -3,7 +3,7 @@ name = "rcli"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-authors = ["cutie <floation-cutie@bupt.edu.cn>"]
+authors = ["cutie <wzxfloation_cutie@bupt.edu.cn>"]
 
 [features]
 clap = []
